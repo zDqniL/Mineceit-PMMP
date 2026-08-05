@@ -227,9 +227,6 @@ class ResourcePacksPacketHandler extends PacketHandler{
 				break;
 			case ResourcePackClientResponsePacket::STATUS_COMPLETED:
 				$this->session->getLogger()->debug("Resource packs sequence completed");
-				if($this->session->getHandler() === $this){
-					$this->session->setHandler(null);
-				}
 				($this->completionCallback)();
 				break;
 			default:

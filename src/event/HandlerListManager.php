@@ -63,7 +63,7 @@ class HandlerListManager{
 	}
 
 	/**
-	 * @phpstan-param \ReflectionClass<Event> $class
+	 * @phpstan-param \ReflectionClass<Event|AsyncEvent> $class
 	 */
 	private static function isValidClass(\ReflectionClass $class) : bool{
 		$tags = Utils::parseDocComment((string) $class->getDocComment());

@@ -119,7 +119,6 @@ final class BlockStateToObjectDeserializer implements BlockStateDeserializer{
 		$this->map($unstrippedId, fn(Reader $in) => Helper::decodeLog($getBlock(), false, $in));
 		$this->map($strippedId, fn(Reader $in) => Helper::decodeLog($getBlock(), true, $in));
 	}
-
 	/** @throws BlockStateDeserializeException */
 	public function deserializeBlock(BlockStateData $blockStateData) : Block{
 		$id = $blockStateData->getName();

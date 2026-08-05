@@ -146,16 +146,35 @@ class HandlerList{
 			$handlerLists[] = $currentList;
 		}
 
-		$listenersByPriority = [];
+		$listeners = [];
+		$asyncListeners = [];
+		$exclusiveAsyncListeners = [];
 		foreach($handlerLists as $currentList){
-			foreach($currentList->handlerSlots as $priority => $listeners){
-				$listenersByPriority[$priority] = array_merge($listenersByPriority[$priority] ?? [], $listeners);
+			foreach($currentList->handlerSlots as $priority => $listenersToSort){
+				foreach($listenersToSort as $listener){
+					if(!$listener instanceof RegisteredAsyncListener){
+						$listeners[$priority][] = $listener;
+					}elseif(!$listener->canBeCalledConcurrently()){
+						$asyncListeners[$priority][] = $listener;
+					}else{
+						$exclusiveAsyncListeners[$priority][] = $listener;
+					}
+				}
+			}
+		}
+		//NOTE: array_merge()/array_merge_recursive() must NOT be used here: they renumber integer keys,
+		//which would destroy the priority indexes and break event ordering entirely.
+		/** @var RegisteredListener[][] $listenersByPriority */
+		$listenersByPriority = [];
+		foreach([$listeners, $asyncListeners, $exclusiveAsyncListeners] as $group){
+			foreach($group as $priority => $listenersForPriority){
+				$listenersByPriority[$priority] = array_merge($listenersByPriority[$priority] ?? [], $listenersForPriority);
 			}
 		}
 
 		//TODO: why on earth do the priorities have higher values for lower priority?
 		krsort($listenersByPriority, SORT_NUMERIC);
 
-		return $this->handlerCache->list = array_merge(...$listenersByPriority);
+		return $this->handlerCache->list = $listenersByPriority === [] ? [] : array_merge(...$listenersByPriority);
 	}
 }

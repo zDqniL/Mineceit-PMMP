@@ -130,7 +130,6 @@ final class BlockObjectToStateSerializer implements BlockStateSerializer{
 		 * @phpstan-var \Closure(TBlockType) : (Writer|BlockStateData) $locatedSerializer
 		 */
 		$result = $locatedSerializer($blockState);
-
 		return $result instanceof Writer ? $result->getBlockStateData() : $result;
 	}
 }

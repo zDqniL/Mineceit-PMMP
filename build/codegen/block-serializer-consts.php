@@ -125,9 +125,7 @@ final class $shortName{
 HEADER;
 }
 
-/**
- * @return resource
- */
+/** @return resource */
 function safe_fopen(string $file, string $flags){
 	$dir = dirname($file);
 	if(!@mkdir($dir, recursive: true) && !is_dir($dir)){

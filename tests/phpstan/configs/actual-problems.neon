@@ -1499,3 +1499,45 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: ../../../src/world/light/SkyLightUpdate.php
+
+		-
+			message: "#^Right side of && is always true\\.$#"
+			count: 1
+			path: ../../../src/promise/Promise.php
+
+		-
+			message: "#^Parameter \\#1 \\$value of method pocketmine\\\\promise\\\\PromiseResolver\\<null\\>\\:\\:resolve\\(\\) expects null, string given\\.$#"
+			count: 2
+			path: ../../../src/event/AsyncEventDelegate.php
+
+		-
+			message: "#^Parameter \\#1 \\$handler of class pocketmine\\\\event\\\\RegisteredAsyncListener constructor expects Closure\\(pocketmine\\\\event\\\\AsyncEvent&pocketmine\\\\event\\\\Event\\)\\: pocketmine\\\\promise\\\\Promise\\<null\\>, \\(Closure\\(TEvent\\)\\: void\\)\\|\\(Closure\\(pocketmine\\\\event\\\\AsyncEvent&TEvent\\)\\: pocketmine\\\\promise\\\\Promise\\<null\\>\\) given\\.$#"
+			count: 1
+			path: ../../../src/plugin/PluginManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$handler of class pocketmine\\\\event\\\\RegisteredAsyncListener constructor expects Closure\\(pocketmine\\\\event\\\\AsyncEvent&pocketmine\\\\event\\\\Event\\)\\: pocketmine\\\\promise\\\\Promise\\<null\\>, Closure\\(TEvent\\)\\: pocketmine\\\\promise\\\\Promise\\<null\\> given\\.$#"
+			count: 1
+			path: ../../../src/plugin/PluginManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$onSuccess of method pocketmine\\\\promise\\\\Promise\\<pocketmine\\\\event\\\\AsyncEvent\\>\\:\\:onCompletion\\(\\) expects Closure\\(pocketmine\\\\event\\\\AsyncEvent\\)\\: void, Closure\\(pocketmine\\\\event\\\\player\\\\PlayerCreationAsyncEvent\\)\\: void given\\.$#"
+			count: 1
+			path: ../../../src/Server.php
+
+		-
+			message: "#^Parameter \\#1 \\$onSuccess of method pocketmine\\\\promise\\\\Promise\\<pocketmine\\\\event\\\\AsyncEvent\\>\\:\\:onCompletion\\(\\) expects Closure\\(pocketmine\\\\event\\\\AsyncEvent\\)\\: void, Closure\\(pocketmine\\\\event\\\\player\\\\PlayerDataSaveAsyncEvent\\)\\: void given\\.$#"
+			count: 1
+			path: ../../../src/Server.php
+
+		-
+			message: '#^Method pocketmine\\event\\HandlerList\:\:getListenerList\(\) should return list\<pocketmine\\event\\RegisteredListener\> but returns array\<pocketmine\\event\\RegisteredListener\>\.$#'
+			identifier: return.type
+			count: 1
+			path: ../../../src/event/HandlerList.php
+
+		-
+			message: '#^Property pocketmine\\event\\RegisteredListenerCache\:\:\$list \(list\<pocketmine\\event\\RegisteredListener\>\|null\) does not accept array\<pocketmine\\event\\RegisteredListener\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: ../../../src/event/HandlerList.php

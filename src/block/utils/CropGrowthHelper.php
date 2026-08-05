@@ -36,6 +36,8 @@ final class CropGrowthHelper{
 
 	private const IMPROPER_ARRANGEMENT_DIVISOR = 2;
 
+	private const GROWTH_SPEED_MULTIPLIER = 1.6;
+
 	private const MIN_LIGHT_LEVEL = 9;
 
 	private function __construct(){
@@ -101,15 +103,11 @@ final class CropGrowthHelper{
 			$result /= self::IMPROPER_ARRANGEMENT_DIVISOR;
 		}
 
-		return $result;
+		return $result * self::GROWTH_SPEED_MULTIPLIER;
 	}
 
 	public static function hasEnoughLight(Block $block, int $minLevel = self::MIN_LIGHT_LEVEL) : bool{
-		$position = $block->getPosition();
-		$world = $position->getWorld();
-
-		//crop growth is not affected by time of day since 1.11 or so
-		return $world->getPotentialLightAt($position->x, $position->y, $position->z) >= $minLevel;
+		return true;
 	}
 
 	public static function canGrow(Block $block) : bool{

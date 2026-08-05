@@ -43,9 +43,7 @@ use const SORT_NUMERIC;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
-/**
- * @return resource
- */
+/** @return resource */
 function safe_fopen(string $file, string $flags){
 	$dir = dirname($file);
 	if(!@mkdir($dir, recursive: true) && !is_dir($dir)){

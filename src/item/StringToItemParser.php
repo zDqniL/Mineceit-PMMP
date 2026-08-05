@@ -845,6 +845,8 @@ final class StringToItemParser extends StringToTParser{
 		$result->registerBlock("mossy_stone_brick_stairs", fn() => Blocks::MOSSY_STONE_BRICK_STAIRS());
 		$result->registerBlock("mossy_stone_brick_wall", fn() => Blocks::MOSSY_STONE_BRICK_WALL());
 		$result->registerBlock("mossy_stone_bricks", fn() => Blocks::MOSSY_STONE_BRICKS());
+		$result->registerBlock("moss_block", fn() => Blocks::MOSS_BLOCK());
+		$result->registerBlock("moss_carpet", fn() => Blocks::MOSS_CARPET());
 		$result->registerBlock("mud", fn() => Blocks::MUD());
 		$result->registerBlock("mud_bricks", fn() => Blocks::MUD_BRICKS());
 		$result->registerBlock("mud_brick_slab", fn() => Blocks::MUD_BRICK_SLAB());
@@ -1030,6 +1032,9 @@ final class StringToItemParser extends StringToTParser{
 		$result->registerBlock("sandstone_wall", fn() => Blocks::SANDSTONE_WALL());
 		$result->registerBlock("sapling", fn() => Blocks::OAK_SAPLING());
 		$result->registerBlock("sculk", fn() => Blocks::SCULK());
+		$result->registerBlock("sculk_vein", fn() => Blocks::SCULK_VEIN());
+		$result->registerBlock("sculk_sensor", fn() => Blocks::SCULK_SENSOR());
+		$result->registerBlock("sculk_shrieker", fn() => Blocks::SCULK_SHRIEKER());
 		$result->registerBlock("sea_lantern", fn() => Blocks::SEA_LANTERN());
 		$result->registerBlock("sea_pickle", fn() => Blocks::SEA_PICKLE());
 		$result->registerBlock("sealantern", fn() => Blocks::SEA_LANTERN());
@@ -1230,6 +1235,8 @@ final class StringToItemParser extends StringToTParser{
 		$result->registerBlock("workbench", fn() => Blocks::CRAFTING_TABLE());
 		$result->registerBlock("yellow_flower", fn() => Blocks::DANDELION());
 		$result->registerBlock("zombie_head", fn() => Blocks::MOB_HEAD()->setMobHeadType(MobHeadType::ZOMBIE));
+		$result->registerBlock("dripstone", fn() => Blocks::DRIPSTONE());
+		$result->registerBlock("pointed_dripstone", fn() => Blocks::POINTED_DRIPSTONE());
 	}
 
 	private static function registerDynamicItems(self $result) : void{

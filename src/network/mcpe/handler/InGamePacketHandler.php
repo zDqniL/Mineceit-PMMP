@@ -90,7 +90,6 @@ use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionD
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemTransactionData;
 use pocketmine\network\mcpe\protocol\types\PlayerAction;
 use pocketmine\network\mcpe\protocol\types\PlayerAuthInputFlags;
-use pocketmine\network\mcpe\protocol\types\PlayerBlockActionStopBreak;
 use pocketmine\network\mcpe\protocol\types\PlayerBlockActionWithBlockInfo;
 use pocketmine\network\PacketHandlingException;
 use pocketmine\player\Player;
@@ -143,6 +142,8 @@ class InGamePacketHandler extends PacketHandler{
 	protected ?float $lastPlayerAuthInputYaw = null;
 	protected ?float $lastPlayerAuthInputPitch = null;
 	protected ?BitSet $lastPlayerAuthInputFlags = null;
+	private bool $clientSwimming = false;
+	private bool $clientCrawling = false;
 
 	protected ?BlockPosition $lastBlockAttacked = null;
 
@@ -223,12 +224,23 @@ class InGamePacketHandler extends PacketHandler{
 			$sneaking = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SNEAKING, PlayerAuthInputFlags::STOP_SNEAKING);
 			$sprinting = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SPRINTING, PlayerAuthInputFlags::STOP_SPRINTING);
 			$swimming = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_SWIMMING, PlayerAuthInputFlags::STOP_SWIMMING);
+			$crawling = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_CRAWLING, PlayerAuthInputFlags::STOP_CRAWLING);
 			$gliding = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_GLIDING, PlayerAuthInputFlags::STOP_GLIDING);
 			$flying = $this->resolveOnOffInputFlags($inputFlags, PlayerAuthInputFlags::START_FLYING, PlayerAuthInputFlags::STOP_FLYING);
+			if($swimming !== null){
+				$this->clientSwimming = $swimming;
+			}
+			if($crawling !== null){
+				$this->clientCrawling = $crawling;
+			}
+			$rejectedSwimming = $swimming === true || $crawling === true;
+			if($this->player->isSwimming()){
+				$this->player->toggleSwim(false);
+			}
 			$mismatch =
 				(!$this->player->toggleSneak($sneaking ?? $this->player->isSneaking(), $sneakPressed)) |
 				($sprinting !== null && !$this->player->toggleSprint($sprinting)) |
-				($swimming !== null && !$this->player->toggleSwim($swimming)) |
+				$rejectedSwimming |
 				($gliding !== null && !$this->player->toggleGlide($gliding)) |
 				($flying !== null && !$this->player->toggleFlight($flying));
 			if((bool) $mismatch){
@@ -241,6 +253,13 @@ class InGamePacketHandler extends PacketHandler{
 			if($inputFlags->get(PlayerAuthInputFlags::MISSED_SWING)){
 				$this->player->missSwing();
 			}
+		}
+
+		//The local Bedrock client predicts swimming/crawling every input tick. Re-send the standing pose
+		//for as long as either predicted state remains active, instead of correcting only its first edge.
+		if($this->clientSwimming || $this->clientCrawling){
+			$this->player->setSwimming(false);
+			$this->player->sendData([$this->player]);
 		}
 
 		if(!$this->forceMoveSync && $hasMoved){
@@ -280,9 +299,7 @@ class InGamePacketHandler extends PacketHandler{
 			}
 			foreach(Utils::promoteKeys($blockActions) as $k => $blockAction){
 				$actionHandled = false;
-				if($blockAction instanceof PlayerBlockActionStopBreak){
-					$actionHandled = $this->handlePlayerActionFromData($blockAction->getActionType(), new BlockPosition(0, 0, 0), Facing::DOWN);
-				}elseif($blockAction instanceof PlayerBlockActionWithBlockInfo){
+				if($blockAction instanceof PlayerBlockActionWithBlockInfo){
 					$actionHandled = $this->handlePlayerActionFromData($blockAction->getActionType(), $blockAction->getBlockPosition(), $blockAction->getFace());
 				}
 
@@ -304,15 +321,15 @@ class InGamePacketHandler extends PacketHandler{
 	public function handleInventoryTransaction(InventoryTransactionPacket $packet) : bool{
 		$result = true;
 
-		if(count($packet->trData->getActions()) > 50){
+		if(count($packet->trData?->getActions() ?? []) > 50){
 			throw new PacketHandlingException("Too many actions in inventory transaction");
 		}
-		if($packet->requestChangedSlots !== null && count($packet->requestChangedSlots) > 10){
+		if(count($packet->requestChangedSlots) > 10){
 			throw new PacketHandlingException("Too many slot sync requests in inventory transaction");
 		}
 
 		$this->inventoryManager->setCurrentItemStackRequestId($packet->requestId);
-		$this->inventoryManager->addRawPredictedSlotChanges($packet->trData->getActions());
+		$this->inventoryManager->addRawPredictedSlotChanges($packet->trData?->getActions() ?? []);
 
 		if($packet->trData instanceof NormalTransactionData){
 			$result = $this->handleNormalTransaction($packet->trData, $packet->requestId);
@@ -334,14 +351,12 @@ class InGamePacketHandler extends PacketHandler{
 		//haven't changed. Handling these is necessary to ensure the client inventory stays in sync if the server
 		//rejects the transaction. The most common example of this is equipping armor by right-click, which doesn't send
 		//a legacy prediction action for the destination armor slot.
-		if($packet->requestChangedSlots !== null){
-			foreach($packet->requestChangedSlots as $containerInfo){
-				foreach($containerInfo->getChangedSlotIndexes() as $netSlot){
-					[$windowId, $slot] = ItemStackContainerIdTranslator::translate($containerInfo->getContainerId(), $this->inventoryManager->getCurrentWindowId(), $netSlot);
-					$inventoryAndSlot = $this->inventoryManager->locateWindowAndSlot($windowId, $slot);
-					if($inventoryAndSlot !== null){ //trigger the normal slot sync logic
-						$this->inventoryManager->onSlotChange($inventoryAndSlot[0], $inventoryAndSlot[1]);
-					}
+		foreach($packet->requestChangedSlots as $containerInfo){
+			foreach($containerInfo->getChangedSlotIndexes() as $netSlot){
+				[$windowId, $slot] = ItemStackContainerIdTranslator::translate($containerInfo->getContainerId(), $this->inventoryManager->getCurrentWindowId(), $netSlot);
+				$inventoryAndSlot = $this->inventoryManager->locateWindowAndSlot($windowId, $slot);
+				if($inventoryAndSlot !== null){ //trigger the normal slot sync logic
+					$this->inventoryManager->onSlotChange($inventoryAndSlot[0], $inventoryAndSlot[1]);
 				}
 			}
 		}
@@ -358,6 +373,7 @@ class InGamePacketHandler extends PacketHandler{
 		try{
 			$transaction->execute();
 		}catch(TransactionValidationException $e){
+			@file_put_contents("/tmp/pluto_pkt_dump.log", "TX-FAIL #$requestId: " . get_class($e) . ": " . $e->getMessage() . "\n", FILE_APPEND);
 			$this->inventoryManager->requestSyncAll();
 			$logger = $this->session->getLogger();
 			$logger->debug("Invalid inventory transaction $requestId: " . $e->getMessage());
@@ -498,6 +514,11 @@ class InGamePacketHandler extends PacketHandler{
 				}
 				return true;
 			case UseItemTransactionData::ACTION_CLICK_AIR:
+			case UseItemTransactionData::ACTION_BREAK_BLOCK:
+				//Newer Bedrock clients (protocol 1001 or +) report a right-click item use in the air as
+				//ACTION_BREAK_BLOCK with triggerType UNKNOWN instead of the legacy ACTION_CLICK_AIR. Actual block
+				//breaking is handled separately through PlayerAuthInput block actions, so
+				//it never reaches this method.
 				if($this->player->isUsingItem()){
 					if(!$this->player->consumeHeldItem()){
 						$hungerAttr = $this->player->getAttributeMap()->get(Attribute::HUNGER) ?? throw new AssumptionFailedError();
@@ -560,6 +581,10 @@ class InGamePacketHandler extends PacketHandler{
 				$this->player->interactEntity($target, $data->getClickPosition());
 				return true;
 			case UseItemOnEntityTransactionData::ACTION_ATTACK:
+			case UseItemOnEntityTransactionData::ACTION_ITEM_INTERACT:
+				//Bedrock 1.26.30 clients send melee attacks on entities as ITEM_INTERACT (2) instead of the legacy
+				//ATTACK (1). Right-click interactions still arrive as INTERACT (0), so both attack action types can
+				//be routed to attackEntity() without affecting interactions.
 				$this->player->attackEntity($target);
 				return true;
 		}
@@ -602,6 +627,7 @@ class InGamePacketHandler extends PacketHandler{
 			}
 		}catch(ItemStackRequestProcessException $e){
 			$result = false;
+			@file_put_contents("/tmp/pluto_pkt_dump.log", "CRAFT-FAIL #" . $request->getRequestId() . ": " . $e->getMessage() . "\n", FILE_APPEND);
 			$this->session->getLogger()->debug("ItemStackRequest #" . $request->getRequestId() . " failed: " . $e->getMessage());
 			$this->session->getLogger()->debug(implode("\n", Utils::printableExceptionInfo($e)));
 			$this->inventoryManager->requestSyncAll();
@@ -881,9 +907,6 @@ class InGamePacketHandler extends PacketHandler{
 		switch($packet->type){
 			case BookEditPacket::TYPE_REPLACE_PAGE:
 				$text = self::checkBookText($packet->text, "page text", self::PAGE_LENGTH_SOFT_LIMIT_CHARS, WritableBookPage::PAGE_LENGTH_HARD_LIMIT_BYTES, $cancel);
-				if($packet->pageNumber < 0){
-					throw new PacketHandlingException("Page number cannot be negative");
-				}
 				$newBook->setPageText($packet->pageNumber, $text);
 				$modifiedPages[] = $packet->pageNumber;
 				break;
@@ -905,9 +928,6 @@ class InGamePacketHandler extends PacketHandler{
 				$modifiedPages[] = $packet->pageNumber;
 				break;
 			case BookEditPacket::TYPE_SWAP_PAGES:
-				if($packet->pageNumber < 0 || $packet->secondaryPageNumber < 0){
-					throw new PacketHandlingException("Page numbers cannot be negative");
-				}
 				if(!$newBook->pageExists($packet->pageNumber) || !$newBook->pageExists($packet->secondaryPageNumber)){
 					//the client will create pages on its own without telling us until it tries to switch them
 					$newBook->addPage(max($packet->pageNumber, $packet->secondaryPageNumber));

@@ -1,106 +1,71 @@
-# End of support announcement
+# Mineceit Software
 
-Hello all,
+A stable PocketMine-MP edition designed for PvP servers and compatible with **Minecraft: Bedrock Edition 26.40** (protocol 2168).
 
-As some of you may know, @driesboy recently decided to leave Minecraft behind as he pursues other interests. While I wish him the best, unfortunately, this now means that no one is left on the team willing to do updates for new Minecraft versions.
+## Features
 
-We've assembled some [documentation](https://doc.pmmp.io/en/rtfd/developers/internals-docs/updating-minecraft-protocol.html) on the update process to help anyone who wants to make a fork to continue updating PM themselves. However, no further updates will be provided by the PMMP team.
+- Bedrock 26.40 network compatibility.
+- Support for LevelDB worlds using world protocol version 975.
+- Updated Minecraft authentication and session encryption.
+- Modern Bedrock 26.40 resource-pack negotiation.
+- Vanilla-style anvil mechanics, including item repair, enchantment combination, enchanted books, incompatible enchantments, rarity and level costs, renaming, prior-work penalties, and the 39-level survival limit.
+- PvP profile without the swimming or crawling pose: the server continuously corrects client-side pose prediction.
+- Normal movement in water is preserved.
+- Empty and filled buckets can collect or place water and lava while the player is holding `Shift`.
+- Corrected mappings for Sculk Sensor, Sculk Shrieker, and Sculk Vein.
 
-I want to say a huge thank you for the outstanding support of the Lifeboat Network for supporting the development of the project financially these last few years.
-While they could've hired us to go closed-source and kept everything for themselves, they instead agreed to let us share the work we were doing with the public community with no strings attached, and didn't even ask for any recognition in return. Their generosity has allowed many servers to flourish over the last few years.
+## Version
 
-A huge thank you is also owed to the members of the PMMP team, past and present, including developers, community moderators, and code reviewers. It has taken a huge amount of unpaid voluntary work by many people to keep this project going for so long, work that has often been taken for granted by the community.
+```text
+PocketMine-MP 5.116.21
+Minecraft: Bedrock Edition 26.40
+Protocol: 2168
+PHP: 8.2 or newer
+```
 
-I would also like to thank those who have supported me on Patreon, however small the amount. You guys have been truly generous, by paying to support a project that you didn't have to, for almost nothing in return except a fancy Discord role.
+This build is published as a stable release and is not marked as a development build.
 
-Finally, thank you to you, the community, for using PocketMine-MP and making cool things with it, reporting bugs, making pull requests, and trying to make the world a better place.
+## Installation
 
-Peace out,
-Dylan / dktapps / the black cat
+1. Download a PHP build compatible with PocketMine-MP.
+2. Place `PocketMine-MP.phar` next to `start.cmd`, `start.ps1`, or `start.sh`.
+3. Start the server and accept the license when prompted.
+4. Configure `server.properties`, `pocketmine.yml`, and your plugins for your PvP server.
 
----
+## Building from source
 
-<p align="center">
-	<a href="https://pmmp.io">
-		<!--[if IE]>
-			<img src="https://github.com/pmmp/PocketMine-MP/blob/stable/.github/readme/pocketmine.png" alt="The PocketMine-MP logo" title="PocketMine" loading="eager" />
-		<![endif]-->
-		<picture>
-			<source srcset="https://raw.githubusercontent.com/pmmp/PocketMine-MP/stable/.github/readme/pocketmine-dark-rgb.gif" media="(prefers-color-scheme: dark)">
-			<img src="https://raw.githubusercontent.com/pmmp/PocketMine-MP/stable/.github/readme/pocketmine-rgb.gif" loading="eager" />
-		</picture>
-	</a><br>
-	<b>A highly customisable, open source server software for Minecraft: Bedrock Edition written in PHP</b>
-</p>
+Install the Composer-locked production dependencies and generate the PHAR:
 
-<p align="center">
-	<a href="https://github.com/pmmp/PocketMine-MP/actions/workflows/main.yml"><img src="https://github.com/pmmp/PocketMine-MP/actions/workflows/main.yml/badge.svg" alt="CI" /></a>
-	<a href="https://github.com/pmmp/PocketMine-MP/releases/latest"><img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/pmmp/PocketMine-MP?label=release&sort=semver"></a>
-	<a href="https://discord.gg/bmSAZBG"><img src="https://img.shields.io/discord/373199722573201408?label=discord&color=7289DA&logo=discord" alt="Discord" /></a>
-	<br>
-	<a href="https://github.com/pmmp/PocketMine-MP/releases"><img alt="GitHub all releases" src="https://img.shields.io/github/downloads/pmmp/PocketMine-MP/total?label=downloads%40total"></a>
-	<a href="https://github.com/pmmp/PocketMine-MP/releases/latest"><img alt="GitHub release (latest by SemVer)" src="https://img.shields.io/github/downloads/pmmp/PocketMine-MP/latest/total?sort=semver"></a>
-</p>
+```bash
+composer install --no-dev --classmap-authoritative
+php -dphar.readonly=0 build/server-phar.php
+```
 
-## What is this?
-PocketMine-MP is a highly customisable server software for Minecraft: Bedrock Edition, built from scratch in PHP, with over 10 years of history.
+Use a PHP build containing all extensions required by PocketMine-MP. See [BUILDING.md](BUILDING.md) for additional information.
 
-If you're looking to create a Minecraft: Bedrock server with **custom functionality**, look no further.
+## Main fork changes
 
-- 🧩 **Powerful plugin API** - extend and customise gameplay as you see fit
-- 🗺️ **Rich ecosystem** and **large developer community** - find plugins easily and learn to develop your own
-- 🌐 **Multi-world support** - offer a more varied game experience to players without transferring them to other server nodes
-- 🏎️ **Performance** - get 100+ players onto one server (depending on hardware and plugins)
-- ⤴️ **Continuously updated** - new Minecraft versions are usually supported within days
+The custom changes are primarily located in:
 
-## :x: PocketMine-MP is NOT a vanilla Minecraft server software.
-**It is poorly suited to hosting vanilla survival servers.**
-It doesn't have many features from the vanilla game, such as vanilla world generation, redstone, mob AI, and various other things.
+- `src/network/mcpe/handler/InGamePacketHandler.php`: continuous suppression of swimming and crawling poses.
+- `src/crafting/ItemCombineRecipe.php`: vanilla-style anvil enchantment combination and costs.
+- `src/crafting/MaterialRepairRecipe.php`: material repairs and prior-work penalties.
+- `src/world/World.php`: water and lava bucket usage while holding `Shift`.
+- `src/data/bedrock/block/convert/VanillaBlockMappings.php`: Sculk family mappings.
+- `src/block/SculkVein.php`: multi-directional block-state compatibility.
 
-If you just want to play **vanilla survival multiplayer**, consider using the [official Minecraft: Bedrock server software](https://minecraft.net/download/server/bedrock) instead of PocketMine-MP.
+## Credits
 
-If that's not an option for you, you may be able to add some of PocketMine-MP's missing features using plugins from [Poggit](https://poggit.pmmp.io/plugins), or write plugins to implement them yourself.
+This project is derived from:
 
-## Getting Started
-- [Documentation](http://pmmp.readthedocs.org/)
-- [Installation instructions](https://pmmp.readthedocs.io/en/rtfd/installation.html)
-- [Docker image](https://github.com/pmmp/PocketMine-MP/pkgs/container/pocketmine-mp)
-- [Plugin repository](https://poggit.pmmp.io/plugins)
+- [PocketMine-MP](https://github.com/pmmp/PocketMine-MP), originally created and maintained by the PocketMine Team.
+- [Plutonium-Mcpe/PocketMine-MP](https://github.com/Plutonium-Mcpe/PocketMine-MP), used as the compatibility base for Bedrock 26.40.
+- The BedrockProtocol, BedrockData, and NBT libraries declared in `composer.lock`.
+- Gemini AI for helping write the [README.md](README.md)
 
-## Community & Support
-Join our [Discord](https://discord.gg/bmSAZBG) server to chat with other users and developers.
+The original authorship history and licenses are preserved. This project is not affiliated with Mojang Studios or Microsoft.
 
-You can also post questions on [StackOverflow](https://stackoverflow.com/tags/pocketmine) under the tag `pocketmine`.
+## License
 
-## Developing Plugins
-If you want to write your own plugins, the following resources may be useful.
-Don't forget you can always ask our community if you need help.
+Distributed under the **GNU LGPL-3.0** license. See [LICENSE](LICENSE). If you redistribute modified binaries, you must also make the corresponding source code available and preserve all copyright and license notices.
 
- * [Developer documentation](https://devdoc.pmmp.io) - General documentation for PocketMine-MP plugin developers
- * [Latest release API documentation](https://apidoc.pmmp.io) - Doxygen API documentation generated for each release
- * [Latest bleeding-edge API documentation](https://apidoc-dev.pmmp.io) - Doxygen API documentation generated weekly from `major-next` branch
- * [DevTools](https://github.com/pmmp/DevTools/) - Development tools plugin for creating plugins
- * [ExamplePlugin](https://github.com/pmmp/ExamplePlugin/) - Example plugin demonstrating some basic API features
-
-## Contributing to PocketMine-MP
-PocketMine-MP accepts community contributions! The following resources will be useful if you want to contribute to PocketMine-MP.
- * [Building and running PocketMine-MP from source](BUILDING.md)
- * [Contributing Guidelines](CONTRIBUTING.md)
-
-New here? Check out [issues with the "Easy task" label](https://github.com/pmmp/PocketMine-MP/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22Easy%20task%22) for things you could work to familiarise yourself with the codebase.
-
-## Donate
-PocketMine-MP is free, but it requires a lot of time and effort from unpaid volunteers to develop. Donations enable us to keep delivering support for new versions and adding features your players love.
-
-You can support development using the following methods:
-
-- [Patreon](https://www.patreon.com/pocketminemp)
-- Bitcoin (BTC): `bc1q2v5ngyf8ugyd55kqa9ep35g2rv342ueqm6ks33`
-- Stellar Lumens (XLM): `GAAC5WZ33HCTE3BFJFZJXONMEIBNHFLBXM2HJVAZHXXPYA3HP5XPPS7T`
-
-Thanks for your support!
-
-## Licensing information
-This project is licensed under LGPL-3.0. Please see the [LICENSE](/LICENSE) file for details.
-
-pmmp/PocketMine are not affiliated with Mojang. All brands and trademarks belong to their respective owners. PocketMine-MP is not a Mojang-approved software, nor is it associated with Mojang.

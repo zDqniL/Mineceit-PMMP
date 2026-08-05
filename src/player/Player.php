@@ -125,6 +125,7 @@ use pocketmine\permission\DefaultPermissions;
 use pocketmine\permission\PermissibleBase;
 use pocketmine\permission\PermissibleDelegateTrait;
 use pocketmine\player\chat\StandardChatFormatter;
+use pocketmine\promise\Promise;
 use pocketmine\Server;
 use pocketmine\ServerProperties;
 use pocketmine\timings\Timings;
@@ -1552,7 +1553,20 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 			}
 
 			if($this->blockBreakHandler !== null && !$this->blockBreakHandler->update()){
+				//update() returns false either because the break progress completed, or because
+				//the attempt was interrupted (e.g. the player moved out of range).
+				$breakCompleted = $this->blockBreakHandler->getBreakProgress() >= 1;
+				$blockBreakPos = $this->blockBreakHandler->getBlockPos();
 				$this->blockBreakHandler = null;
+				if($breakCompleted){
+					//Server-authoritative break: destroy the block as soon as the server-side break
+					//progress completes, rather than waiting for the client's PREDICT_DESTROY_BLOCK.
+					//The crack animation is server-driven (BLOCK_START_BREAK), so this keeps the
+					//destruction in sync with the animation. It matters most for custom blocks, whose
+					//client-side destroy time (destructible_by_mining) is not tool-aware and therefore
+					//completes much later than the server's tool-aware break time.
+					$this->breakBlock($blockBreakPos);
+				}
 			}
 
 			if($this->isUsingItem() && $this->getItemUseDuration() % 4 === 0 && ($item = $this->inventory->getItemInHand()) instanceof ConsumableItem){
@@ -2516,6 +2530,13 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		$this->server->saveOfflinePlayerData($this->username, $this->getSaveData());
 	}
 
+	/**
+	 * @return Promise<null>
+	 */
+	public function saveAsync() : Promise {
+		return $this->server->saveOfflinePlayerDataAsync($this->username, $this->getSaveData());
+	}
+
 	protected function onDeath() : void{
 		//Crafting grid must always be evacuated even if keep-inventory is true. This dumps the contents into the
 		//main inventory and drops the rest on the ground.
@@ -2665,12 +2686,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		$properties->setGenericFlag(EntityMetadataFlags::HAS_COLLISION, $this->hasBlockCollision());
 
 		$properties->setPlayerFlag(PlayerMetadataFlags::SLEEP, $this->sleeping !== null);
-		if($this->sleeping !== null){
-			//this should only be sent when the player enters the bed, as of 1.26.??
-			//previously we were setting this to 0,0,0 if the player wasn't sleeping, but that now causes the player to
-			//teleport to that position temporarily when leaving the bed. Bugrock moment...
-			$properties->setBlockPos(EntityMetadataProperties::PLAYER_BED_POSITION, BlockPosition::fromVector3($this->sleeping));
-		}
+		$properties->setBlockPos(EntityMetadataProperties::PLAYER_BED_POSITION, $this->sleeping !== null ? BlockPosition::fromVector3($this->sleeping) : new BlockPosition(0, 0, 0));
 
 		if($this->deathPosition !== null && $this->deathPosition->world === $this->location->world){
 			$properties->setBlockPos(EntityMetadataProperties::PLAYER_DEATH_POSITION, BlockPosition::fromVector3($this->deathPosition));
@@ -2897,7 +2913,6 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 	use ChunkListenerNoOpTrait {
 		onChunkChanged as private;
 		onChunkUnloaded as private;
-		onBlockChanged as private;
 	}
 
 	public function onChunkChanged(int $chunkX, int $chunkZ, Chunk $chunk) : void{
@@ -2912,13 +2927,6 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		if($this->isUsingChunk($chunkX, $chunkZ)){
 			$this->logger->debug("Detected forced unload of chunk " . $chunkX . " " . $chunkZ);
 			$this->unloadChunk($chunkX, $chunkZ);
-		}
-	}
-
-	public function onBlockChanged(Vector3 $block) : void{
-		if($this->sleeping !== null && $block->equals($this->sleeping) && !($this->getWorld()->getBlock($block) instanceof Bed)){
-			$this->logger->debug("Bed was changed or deleted, aborting sleep");
-			$this->stopSleep();
 		}
 	}
 }

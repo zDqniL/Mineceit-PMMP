@@ -113,8 +113,7 @@ class PreSpawnPacketHandler extends PacketHandler{
 				false,
 				false,
 				new NetworkPermissions(disableClientSounds: true),
-				true,
-				null,
+				null, //serverJoinInformation
 				new ServerTelemetryData("", "", "", ""),
 				[],
 				0,
@@ -167,6 +166,12 @@ class PreSpawnPacketHandler extends PacketHandler{
 	public function handleRequestChunkRadius(RequestChunkRadiusPacket $packet) : bool{
 		$this->player->setViewDistance($packet->radius);
 
+		return true;
+	}
+
+	public function handlePlayerAuthInput(PlayerAuthInputPacket $packet) : bool{
+		//the client will send this every tick once we start sending chunks, but we don't handle it in this stage
+		//this is very spammy so we filter it out
 		return true;
 	}
 }

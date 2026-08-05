@@ -58,9 +58,11 @@ use pocketmine\event\world\WorldDisplayNameChangeEvent;
 use pocketmine\event\world\WorldParticleEvent;
 use pocketmine\event\world\WorldSaveEvent;
 use pocketmine\event\world\WorldSoundEvent;
+use pocketmine\item\Bucket;
 use pocketmine\item\Item;
 use pocketmine\item\ItemUseResult;
 use pocketmine\item\LegacyStringToItemParser;
+use pocketmine\item\LiquidBucket;
 use pocketmine\item\StringToItemParser;
 use pocketmine\item\VanillaItems;
 use pocketmine\lang\KnownTranslationFactory;
@@ -1114,7 +1116,12 @@ class World implements ChunkManager{
 					);
 					$packets[] = UpdateBlockPacket::create(
 						$blockPosition,
-						$blockTranslator->getBlockStateDictionary()->lookupStateIdFromData($fakeStateData) ?? throw new AssumptionFailedError("Unmapped fake blockstate data: " . $fakeStateData->toNbt()),
+						//lookupStateIdFromData() returns a dictionary index; it must be run through the
+						//translator so that in hash mode the fake-state packet writes a hash like every
+						//other block runtime ID, instead of a raw index the client can't resolve.
+						$blockTranslator->networkStateIdToNetworkId(
+							$blockTranslator->getBlockStateDictionary()->lookupStateIdFromData($fakeStateData) ?? throw new AssumptionFailedError("Unmapped fake blockstate data: " . $fakeStateData->toNbt())
+						),
 						UpdateBlockPacket::FLAG_NETWORK,
 						UpdateBlockPacket::DATA_LAYER_NORMAL
 					);
@@ -1459,6 +1466,22 @@ class World implements ChunkManager{
 		}finally{
 			$this->timings->syncChunkSave->stopTiming();
 		}
+	}
+
+	/**
+	 * Returns whether a scheduled block update is already pending for the given
+	 * coordinates.
+	 *
+	 * scheduleDelayedBlockUpdate() only skips a duplicate when the pending delay
+	 * is shorter than or equal to the new one; a shorter delay inserts a second
+	 * queue entry and the first one is never removed. Blocks that reschedule
+	 * themselves on a random delay AND on every neighbour change - frosted ice
+	 * being the worst offender - therefore pile up several updates per position
+	 * in a dense field. Callers can use this to skip a reschedule that would
+	 * only add a duplicate.
+	 */
+	public function hasScheduledBlockUpdate(Vector3 $pos) : bool{
+		return isset($this->scheduledBlockUpdateQueueIndex[World::blockHash($pos->x, $pos->y, $pos->z)]);
 	}
 
 	/**
@@ -2270,8 +2293,14 @@ class World implements ChunkManager{
 		if($player !== null){
 			$ev = new PlayerInteractEvent($player, $item, $blockClicked, $clickVector, $face, PlayerInteractEvent::RIGHT_CLICK_BLOCK);
 			if($player->isSneakPressed()){
-				$ev->setUseItem(false);
-				$ev->setUseBlock($item->isNull()); //opening doors is still possible when sneaking if using an empty hand
+				if($item instanceof LiquidBucket || $item instanceof Bucket){
+					//Sneaking with a water/lava bucket bypasses the clicked block's UI and empties the bucket.
+					$ev->setUseBlock(false);
+					$ev->setUseItem(true);
+				}else{
+					$ev->setUseItem(false);
+					$ev->setUseBlock($item->isNull()); //opening doors is still possible when sneaking if using an empty hand
+				}
 			}
 			if($player->isSpectator()){
 				$ev->cancel(); //set it to cancelled so plugins can bypass this

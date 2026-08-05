@@ -190,6 +190,10 @@ final class VanillaBlocksInputs extends RegistrySource{
 		self::register("cobblestone_stairs", fn(BID $id) => new Stair($id, "Cobblestone Stairs", $cobblestoneBreakInfo));
 		self::register("mossy_cobblestone_stairs", fn(BID $id) => new Stair($id, "Mossy Cobblestone Stairs", $cobblestoneBreakInfo));
 
+		$mossBreakInfo = new Info(BreakInfo::hoe(0.1));
+		self::register("moss_block", fn(BID $id) => new Opaque($id, "Moss Block", $mossBreakInfo));
+		self::register("moss_carpet", fn(BID $id) => new MossCarpet($id, "Moss Carpet", $mossBreakInfo));
+
 		self::register("cobweb", fn(BID $id) => new Cobweb($id, "Cobweb", new Info(new BreakInfo(4.0, ToolType::SWORD | ToolType::SHEARS, 1))));
 		self::register("cocoa_pod", fn(BID $id) => new CocoaBlock($id, "Cocoa Block", new Info(BreakInfo::axe(0.2, null, 15.0))));
 		self::register("coral_block", fn(BID $id) => new CoralBlock($id, "Coral Block", new Info(BreakInfo::pickaxe(1.5, ToolTier::WOOD, 30.0))));
@@ -368,8 +372,10 @@ final class VanillaBlocksInputs extends RegistrySource{
 		self::register("sand", fn(BID $id) => new Sand($id, "Sand", $sandTypeInfo));
 		self::register("red_sand", fn(BID $id) => new Sand($id, "Red Sand", $sandTypeInfo));
 
+		self::register("kelp", fn(BID $id) => new Kelp($id, "Kelp", new Info(BreakInfo::instant())));
 		self::register("sea_lantern", fn(BID $id) => new SeaLantern($id, "Sea Lantern", new Info(new BreakInfo(0.3))));
 		self::register("sea_pickle", fn(BID $id) => new SeaPickle($id, "Sea Pickle", new Info(BreakInfo::instant())));
+		self::register("seagrass", fn(BID $id) => new Seagrass($id, "Seagrass", new Info(BreakInfo::instant())));
 		self::register("mob_head", fn(BID $id) => new MobHead($id, "Mob Head", new Info(new BreakInfo(1.0), enchantmentTags: [EnchantmentTags::MASK])), TileMobHead::class);
 		self::register("slime", fn(BID $id) => new Slime($id, "Slime Block", new Info(BreakInfo::instant())));
 		self::register("snow", fn(BID $id) => new Snow($id, "Snow Block", new Info(BreakInfo::shovel(0.2, ToolTier::WOOD))));
@@ -609,12 +615,18 @@ final class VanillaBlocksInputs extends RegistrySource{
 		self::register("muddy_mangrove_roots", fn(BID $id) => new SimplePillar($id, "Muddy Mangrove Roots", new Info(BreakInfo::shovel(0.7), [Tags::MUD])));
 		self::register("froglight", fn(BID $id) => new Froglight($id, "Froglight", new Info(new BreakInfo(0.3))));
 		self::register("sculk", fn(BID $id) => new Sculk($id, "Sculk", new Info(new BreakInfo(0.2, ToolType::HOE))));
+		self::register("sculk_sensor", fn(BID $id) => new SculkSensor($id, "Sculk Sensor", new Info(new BreakInfo(1.5))));
+		self::register("sculk_shrieker", fn(BID $id) => new SculkShrieker($id, "Sculk Shrieker", new Info(new BreakInfo(3))));
+		self::register("sculk_vein", fn(BID $id) => new SculkVein($id, "Sculk Vein", new Info(new BreakInfo(0.2))));
 		self::register("reinforced_deepslate", fn(BID $id) => new class($id, "Reinforced Deepslate", new Info(new BreakInfo(55.0, ToolType::NONE, 0, 6000.0))) extends Opaque{
 			public function getDropsForCompatibleTool(Item $item) : array{
 				return [];
 			}
 		});
 		self::register("cactus_flower", fn(BID $id) => new CactusFlower($id, "Cactus Flower", new Info(BreakInfo::instant())));
+
+		self::register("pointed_dripstone", fn(BID $id) => new PointedDripstone($id, "Pointed Dripstone", new Info(new BreakInfo(1.5, blastResistance: 15))));
+		self::register("dripstone", fn(BID $id) => new Opaque($id, "Dripstone Block", new Info(BreakInfo::pickaxe(1.5, ToolTier::WOOD, 5))));
 
 		self::registerBlocksR13();
 		self::registerBlocksR14();
